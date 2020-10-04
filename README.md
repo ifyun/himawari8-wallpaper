@@ -24,7 +24,7 @@
 pip install pipenv
 ```
 
-> 提示：你可能需要设置环境变量才能使用 `pipenv`。
+> 提示：确认你已将 `%USERPROFILE%\AppData\Roaming\Python\Python38\Scripts` 添加到 `PATH`。
 
 ### 1. 直接运行
 
@@ -44,4 +44,4 @@ pipenv update && build.cmd
 
 - 生成的可执行文件在 `dist` 目录下，没有图形界面，双击后进入后台运行
 - 每 5 分钟更新一次（本地已存在最新图片不会发送请求），官方的更新间隔是从整点开始，每 10 分钟一次
-- 获取的地球图片保存在 `%USERPROFILE%\himawari8-images` 目录下
+- 获取的地球图片保存在 `%USERPROFILE%\himawari8-images` 目录下（只保留 30 分钟以内的图片）
