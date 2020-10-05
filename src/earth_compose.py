@@ -1,27 +1,30 @@
-import sys
-import os
-
-from cv2 import imread, imwrite, copyMakeBorder, BORDER_CONSTANT
 import glob
+import os
+import sys
+
 import numpy as np
+from cv2 import BORDER_CONSTANT, copyMakeBorder, imread, imwrite
+
 from env import IMAGE_DIR
+from logger import log
 
 
 def compose(img_dir, size, timestamp):
-    '''拼接图片
+    '''
+    拼接图片
 
     Args:
         img_dir: 存放图片各个区域的目录
         size: 图片大小，表示由 size ^ 2 张图片拼接
         timestamp: 时间，作为文件名
     '''
-    print('\033[0;30;46m Composing Earth Image... \033[0m')
+    log.info('Composing Earth Image.')
     images = []
 
     if not os.path.exists(IMAGE_DIR):
         os.mkdir(IMAGE_DIR)
 
-    for file in glob.glob(img_dir + '0*.png'):
+    for file in sorted(glob.glob(img_dir + '0*.png')):
         img = imread(file, -1)
         images.append(img)
 
@@ -48,7 +51,8 @@ def compose(img_dir, size, timestamp):
 
 
 def add_padding(earth, earth_path):
-    '''四周加黑边保存
+    '''
+    四周加黑边保存
 
     Args:
         earth: 拼接后的图片矩阵

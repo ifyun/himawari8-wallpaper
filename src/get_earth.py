@@ -5,17 +5,21 @@ import time
 from shutil import rmtree
 
 import requests
-import win32.lib.win32con as win32con
-from win32 import win32api, win32gui
 
 from earth_compose import compose
-from env import BASE_URL, IMG_PATH, IMAGE_DIR, CACHE_DIR
+from env import BASE_URL, CACHE_DIR, IMAGE_DIR, IMG_PATH, OS
+from logger import log
+
+if OS == 'Windows':
+    import win32.lib.win32con as win32con
+    from win32 import win32api, win32gui
 
 temp_dir = ''
 
 
 def create_dir(path):
-    '''创建临时文件夹
+    '''
+    创建临时文件夹
 
     Args:
         path: 保存图片每个区域的临时目录
@@ -27,27 +31,31 @@ def create_dir(path):
 
 
 def get_latest_timestamp():
-    '''根据当前时间从 himawari8 官网获取最新时间戳
+    '''
+    根据当前时间从 himawari8 官网获取最新时间戳
 
     Returns:
         latest_timestamp: 来自 himawari8 的最新时间戳
     '''
     timestamp = round(time.time())
-    print('\033[0;30;43m Fetching Latest Timestamp... \033[0m')
+    log.info('Fetching Latest Timestamp.')
     url = BASE_URL + '/img/FULL_24h/latest.json?_=' + str(timestamp)
     req = requests.get(url)
     latest_timestamp = ''
+
     if (req.status_code == 200):
         latest_timestamp = json.loads(req.content).get('date')
-        print('\033[0;30;42m Latest Timestamp: %s \033[0m' % latest_timestamp)
+        log.info('Latest Timestamp: %s.' % latest_timestamp)
         latest_timestamp = str(latest_timestamp).replace(
             '-', '/').replace(' ', '/').replace(':', '')
+
     del req
     return latest_timestamp
 
 
 def get_earth_part(path, timestamp, x, y):
-    '''获取每个部分的图片
+    '''
+    获取每个部分的图片
 
     发送请求从 himawari8 api 获取图片
 
@@ -66,38 +74,41 @@ def get_earth_part(path, timestamp, x, y):
 
 
 def get_earth_by_size(timestamp, size):
-    '''根据时间戳和大小获取每个区域的图片
+    '''
+    根据时间戳和大小获取每个区域的图片
 
     Args:
         timestamp: 从 himawari8 api 获取的最新时间戳
         size: 取值范围为 [2, 4, 8, 16, 20], 图片分辨率为 (550 * size) ^ 2
     '''
     i, total = 1, size * size
-    if size in [2, 4, 8, 16, 20]:
-        path = IMG_PATH.replace('$size', str(size))
-        create_dir(CACHE_DIR + "%s/%dd/" % (timestamp, size))
-        # 获取每个区域
-        for y in range(0, size, 1):
-            for x in range(0, size, 1):
-                print('\033[0;30;43m Getting Parts: %d/%d \r\033[0m' %
-                      (i, total), end='')
-                get_earth_part(path, timestamp, x, y)
-                i = i + 1
-    else:
-        sys.stderr.write('\033[0;30;41m Invalid size: %d \033[0m' % size)
+    path = IMG_PATH.replace('$size', str(size))
+    create_dir(CACHE_DIR + "%s/%dd/" % (timestamp, size))
+    # 获取每个区域
+    for y in range(0, size, 1):
+        for x in range(0, size, 1):
+            log.info('Getting Parts: %d/%d.' % (i, total))
+            get_earth_part(path, timestamp, x, y)
+            i = i + 1
 
 
-def set_background_color():
-    '''设置桌面背景色为黑色
+def set_wallpaper_gnome(path):
+    '''
+    设置 Gnome 桌面环境的壁纸
+    '''
+    abs_path = os.path.abspath(path)
+    os.system("gsettings set org.gnome.desktop.background primary-color '#000000'")
+    os.system("gsettings set org.gnome.desktop.background picture-options 'scaled'")
+    os.system(
+        'gsettings set org.gnome.desktop.background picture-uri file://' + abs_path)
+    log.info('Current Wallpaper: %s.' % abs_path)
+
+
+def set_wallpaper_windows(path):
+    '''调用 win32 api 设置桌面壁纸
     '''
     BACKGROUND_COLOR = win32api.RGB(0, 0, 0)
     win32api.SetSysColors((win32con.COLOR_DESKTOP,), (BACKGROUND_COLOR,))
-
-
-def set_wallpaper(path):
-    '''调用 win32 api 设置桌面壁纸
-    '''
-    set_background_color()
     abs_path = os.path.abspath(path)
     reg_key = win32api.RegOpenKeyEx(win32con.HKEY_CURRENT_USER,
                                     'Control Panel\\Desktop',
@@ -108,11 +119,19 @@ def set_wallpaper(path):
                                   abs_path,
                                   win32con.SPIF_SENDWININICHANGE)
     win32api.RegCloseKey(reg_key)
-    print('\033[0;30;42m Current Wallpaper: %s \033[0m' % abs_path)
+    log.info('Current Wallpaper: %s.' % abs_path)
+
+
+def set_wallpaper(path):
+    if OS == 'Windows':
+        set_wallpaper_windows(path)
+    elif OS == 'Linux':
+        set_wallpaper_gnome(path)
 
 
 def del_old_images():
-    '''删除旧图片
+    '''
+    删除旧图片
 
     30 分钟以前的图片将被删除
     '''
@@ -127,14 +146,17 @@ def del_old_images():
 
 
 def get_earth(size):
-    time = get_latest_timestamp()
-    filename = time.replace('/', '-')
-    earth_path = IMAGE_DIR + '%s.png' % filename
-    # 如果本地图片已经是最新就不从服务器获取
-    if not os.path.exists(earth_path):
-        if time != '':
-            get_earth_by_size(time, size)
-            compose(temp_dir, size, filename)
-            rmtree(CACHE_DIR)
-    set_wallpaper(earth_path)
-    del_old_images()
+    if size in [2, 4, 8, 16, 20]:
+        time = get_latest_timestamp()
+        filename = time.replace('/', '-')
+        earth_path = IMAGE_DIR + '%s.png' % filename
+        # 如果本地图片已经是最新就不从服务器获取
+        if not os.path.exists(earth_path):
+            if time != '':
+                get_earth_by_size(time, size)
+                compose(temp_dir, size, filename)
+                rmtree(CACHE_DIR)
+        set_wallpaper(earth_path)
+        del_old_images()
+    else:
+        log.error('Invalid size: %d.' % size)

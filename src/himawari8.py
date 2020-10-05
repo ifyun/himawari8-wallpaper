@@ -1,19 +1,25 @@
 import sched
 import time
-import getopt
-import sys
 
+from env import IMAGE_SIZE
 from get_earth import get_earth
+from logger import log
 
-size = 4
 task = sched.scheduler(time.time, time.sleep)
 
 
 def execute(inc):
     task.enter(inc, 0, execute, (inc,))
-    get_earth(size)
+    try:
+        get_earth(IMAGE_SIZE)
+    except Exception as e:
+        log.error(e)
+
+
+def run():
+    task.enter(0, 0, execute, (300,))
+    task.run()
 
 
 if __name__ == "__main__":
-    task.enter(0, 0, execute, (300,))
-    task.run()
+    run()
