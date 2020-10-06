@@ -1,4 +1,5 @@
 import logging
+from logging.handlers import RotatingFileHandler
 
 log = logging.getLogger()
 log.setLevel(logging.INFO)
@@ -9,7 +10,7 @@ formatter = logging.Formatter(
 console_handler = logging.StreamHandler()
 console_handler.setLevel(logging.INFO)
 
-file_handler = logging.FileHandler('./himawari8.log')
+file_handler = RotatingFileHandler('./himawari8.log', 'a', 10240, 2, 'utf-8')
 file_handler.setLevel(logging.INFO)
 
 console_handler.setFormatter(formatter)

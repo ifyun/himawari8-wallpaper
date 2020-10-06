@@ -7,7 +7,7 @@ from shutil import rmtree
 import requests
 
 from earth_compose import compose
-from env import BASE_URL, CACHE_DIR, IMAGE_DIR, IMG_PATH, OS
+from env import BASE_URL, CACHE_DIR, IMAGE_DIR, IMG_PATH, DEL_BEFORE, OS
 from logger import log
 
 if OS == 'Windows':
@@ -129,19 +129,21 @@ def set_wallpaper(path):
         set_wallpaper_gnome(path)
 
 
-def del_old_images():
+def del_old_images(before):
     '''
     删除旧图片
 
-    30 分钟以前的图片将被删除
+    before 分钟以前的图片将被删除
     '''
+    if before <= 0:
+        return
     images = os.listdir(IMAGE_DIR)
     for file_name in images:
         path = os.path.join(IMAGE_DIR, file_name)
         if (os.path.isfile(path)):
             ctime = os.path.getctime(path)
             t = (time.time() - ctime) / 60
-            if (t > 30):
+            if (t > before):
                 os.remove(path)
 
 
@@ -157,6 +159,6 @@ def get_earth(size):
                 compose(temp_dir, size, filename)
                 rmtree(CACHE_DIR)
         set_wallpaper(earth_path)
-        del_old_images()
+        del_old_images(DEL_BEFORE)
     else:
         log.error('Invalid size: %d.' % size)
