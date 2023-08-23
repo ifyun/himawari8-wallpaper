@@ -1,25 +1,20 @@
 import sched
 import time
 
-from env import IMAGE_SIZE
-from get_earth import get_earth
-from logger import log
+from src.env import ENV, LOG
+from src.earth_api import earth
 
 task = sched.scheduler(time.time, time.sleep)
 
 
-def execute(inc):
-    task.enter(inc, 0, execute, (inc,))
+def _execute(inc):
+    task.enter(inc, 0, _execute, (inc,))
     try:
-        get_earth(IMAGE_SIZE)
+        earth.get(ENV.IMAGE_SIZE)
     except Exception as e:
-        log.error(e)
+        LOG.error(e)
 
 
 def run():
-    task.enter(0, 0, execute, (300,))
+    task.enter(0, 0, _execute, (300,))
     task.run()
-
-
-if __name__ == "__main__":
-    run()

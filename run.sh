@@ -1,1 +1,0 @@
-pipenv run python ./src/himawari8.py;
