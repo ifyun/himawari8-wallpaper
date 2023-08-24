@@ -32,7 +32,7 @@ class Env:
         console_handler = logging.StreamHandler()
         console_handler.setLevel(logging.INFO)
 
-        file_handler = RotatingFileHandler(home_dir + '/himawari8.log', 'w', 1024000, 2, 'utf-8')
+        file_handler = RotatingFileHandler(home_dir + '/himawari8.log', 'w', encoding='utf-8')
         file_handler.setLevel(logging.INFO)
 
         console_handler.setFormatter(formatter)

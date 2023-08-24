@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 from src.himawari8 import run
 
 
